@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>المكتبة الروحية — كنيسة القديس الأنبا أنطونيوس والأنبا كاراس بالعجيزي</title>
+<title>المكتبة الروحية — كنيسة القديسين العظيمين الأنبا كاراس والأنبا أنطونيوس</title>
 <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
   :root {
     --ink: #0d1117;
@@ -174,6 +174,21 @@
     border-radius:10px; font-weight:700; font-size:14px; z-index:99999; box-shadow:0 6px 20px rgba(0,0,0,0.3);
   }
 
+  .gender-chooser { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:20px; max-width:640px; margin:40px auto; }
+  .gender-card {
+    display:flex; flex-direction:column; align-items:center; gap:10px; text-decoration:none; color:var(--ink);
+    background:#fff; border:2px solid var(--cream); border-radius:18px; padding:36px 20px;
+    box-shadow:0 6px 18px var(--shadow); transition:transform .15s, box-shadow .15s;
+  }
+  .gender-card:hover { transform:translateY(-4px); box-shadow:0 12px 26px var(--shadow); }
+  .gender-card .g-icon { font-size:56px; }
+  .gender-card .g-name { font-size:20px; font-weight:900; }
+  .gender-card .g-sub { font-size:12px; color:#888; }
+  .gender-card.boys  { border-color:var(--accent2); }
+  .gender-card.girls { border-color:#c2185b; }
+  body.girls .header-icon { background:#c2185b; }
+  body.girls .tab-btn.active { color:#c2185b; border-bottom-color:#c2185b; }
+
   @media (max-width:600px){
     .header h1 { font-size:15px; }
     .stage-grid { grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); }
@@ -188,12 +203,13 @@
   <div class="header-brand">
     <div class="header-icon">📚</div>
     <div>
-      <h1>المكتبة الروحية</h1>
-      <div class="header-subtitle">كنيسة القديس الأنبا أنطونيوس والأنبا كاراس بالعجيزي</div>
+      <h1 id="libTitle">المكتبة الروحية</h1>
+      <div class="header-subtitle" id="libSubtitle">كنيسة القديسين العظيمين الأنبا كاراس والأنبا أنطونيوس</div>
     </div>
   </div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;">
-    <a href="./admin.html" class="back-link">🔒 لوحة المشرفين</a>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <span id="syncStatus" style="font-size:11px;font-weight:700;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.3);padding:6px 12px;border-radius:20px;color:#fff;">⏳ جارٍ الاتصال بالسحابة...</span>
+    <a href="./library.html" class="back-link" id="switchGenderLink" style="display:none;">🔁 تغيير (بنين / بنات)</a>
     <a href="./index.html" class="back-link">↩️ الرجوع لنظام الغياب</a>
   </div>
 </div>
@@ -297,21 +313,43 @@
 </div>
 
 <script>
+(function() {
 /* ============================================================
    المكتبة الروحية — أقسام دراسية من أولى ابتدائي حتى التخرج
    كل قسم محمي بكلمة مرور، ويحتوي على ملفات PDF/صوت/فيديو
-   يتم تخزين الملفات محلياً داخل المتصفح عبر IndexedDB
+   التخزين على قاعدة بيانات Supabase السحابية، بحيث يراها
+   كل المشرفين والخدام من أي جهاز فور تسجيل الدخول
    ============================================================ */
 
-/* ================= ☁️ اتصال السحابة (Supabase) — نفس بيانات نظام الغياب ولوحة المشرفين ================= */
-const SUPABASE_URL      = 'https://xtujykwiuluihyqrbwrn.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh0dWp5a3dpdWx1aWh5cXJid3JuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyMzE1NjYsImV4cCI6MjA5OTgwNzU2Nn0.d69xuG79t1BDI_n5JICPKhv0D6vWVit6C-b1O36t_Io';
-let _libSupabaseClient = null;
-try {
-  if (window.supabase && window.supabase.createClient) {
-    _libSupabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+/* ================= إعداد Supabase ================= */
+const SUPABASE_URL = 'https://xtujykwiuluihyqrbwrn.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh0dWp5a3dpdWx1aWh5cXJid3JuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyMzE1NjYsImV4cCI6MjA5OTgwNzU2Nn0.d69xuG79t1BDI_n5JICPKhv0D6vWVit6C-b1O36t_Io';
+const LIBRARY_BUCKET = 'library-files';
+
+/* ================= مكتبة البنين / مكتبة البنات (صفحتان منفصلتان) =================
+   library.html            ← شاشة اختيار (بنين / بنات)
+   library.html?g=boys     ← مكتبة البنين   (المعرّفات الأصلية كما هي، فتبقى الملفات وكلمات المرور القديمة هنا)
+   library.html?g=girls    ← مكتبة البنات   (كل معرّف قسم بادئته g_ فتكون ملفاتها وكلمات مرورها مستقلة تماماً) */
+const _gParam = new URLSearchParams(location.search).get('g');
+const GENDER = (_gParam === 'girls' || _gParam === 'boys') ? _gParam : null;
+const GIRLS_PREFIX = 'g_';
+const GENDER_LABEL = GENDER === 'girls' ? 'مكتبة البنات' : 'مكتبة البنين';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+async function checkSupabaseConnection() {
+  const statusEl = document.getElementById('syncStatus');
+  try {
+    const { error } = await supabase.rpc('library_locked_stage_ids');
+    if (error) throw error;
+    statusEl.textContent = '☁️ متصل بالسحابة';
+    statusEl.style.background = 'rgba(26,122,74,0.35)';
+  } catch (e) {
+    console.error('Supabase connection error:', e);
+    statusEl.textContent = '⚠️ تعذّر الاتصال بقاعدة البيانات';
+    statusEl.style.background = 'rgba(200,57,43,0.5)';
+    showToast('⚠️ تعذّر الاتصال بقاعدة البيانات، تأكد من الإنترنت وحاول تحديث الصفحة');
   }
-} catch(e) { console.warn('تعذر تهيئة اتصال Supabase في المكتبة:', e); }
+}
 
 const DEFAULT_STAGES = [
   { id:'p1',  name:'سنة أولى ابتدائي',   group:'المرحلة الابتدائية', icon:'📗' },
@@ -329,102 +367,133 @@ const DEFAULT_STAGES = [
   { id:'grad',name:'مرحلة الخريجين (التخرّج)', group:'الخريجون',     icon:'🎓' },
 ];
 
-const CUSTOM_STAGES_KEY = 'library_customStages';
-const PASSWORDS_KEY     = 'library_passwords';
-
-function getCustomStages() {
-  try { return JSON.parse(localStorage.getItem(CUSTOM_STAGES_KEY)) || []; } catch(e){ return []; }
+async function getCustomStages() {
+  const { data, error } = await supabase
+    .from('library_stages')
+    .select('*')
+    .order('created_at', { ascending:true });
+  if (error) { console.error(error); return []; }
+  return data.map(s => ({ id:s.id, name:s.name, group:s.group_name, icon:s.icon }));
 }
-function saveCustomStages(list) {
-  localStorage.setItem(CUSTOM_STAGES_KEY, JSON.stringify(list));
-}
-function getAllStages() {
-  return [...DEFAULT_STAGES, ...getCustomStages()];
-}
-function getPasswords() {
-  try { return JSON.parse(localStorage.getItem(PASSWORDS_KEY)) || {}; } catch(e){ return {}; }
-}
-function savePasswords(obj) {
-  localStorage.setItem(PASSWORDS_KEY, JSON.stringify(obj));
-}
-
-async function sha256(text) {
-  const enc = new TextEncoder().encode('churchLib_' + text);
-  const buf = await crypto.subtle.digest('SHA-256', enc);
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-}
-
-/* ================= IndexedDB ================= */
-let dbPromise = null;
-function openDB() {
-  if (dbPromise) return dbPromise;
-  dbPromise = new Promise((resolve, reject) => {
-    const req = indexedDB.open('churchLibraryDB', 1);
-    req.onupgradeneeded = (e) => {
-      const db = e.target.result;
-      if (!db.objectStoreNames.contains('files')) {
-        const store = db.createObjectStore('files', { keyPath:'id', autoIncrement:true });
-        store.createIndex('stage', 'stage', { unique:false });
-        store.createIndex('stageCategory', ['stage','category'], { unique:false });
-      }
-    };
-    req.onsuccess = (e) => resolve(e.target.result);
-    req.onerror = (e) => reject(e.target.error);
+async function addCustomStage(stage) {
+  const { error } = await supabase.from('library_stages').insert({
+    id: stage.id, name: stage.name, group_name: stage.group, icon: stage.icon
   });
-  return dbPromise;
+  if (error) throw error;
+}
+async function getAllStages() {
+  const custom = await getCustomStages();
+  if (GENDER === 'girls') {
+    const defs = DEFAULT_STAGES.map(s => ({ ...s, id: GIRLS_PREFIX + s.id }));
+    return [...defs, ...custom.filter(s => String(s.id).startsWith(GIRLS_PREFIX))];
+  }
+  return [...DEFAULT_STAGES, ...custom.filter(s => !String(s.id).startsWith(GIRLS_PREFIX))];
+}
+// أقسام لها كلمة مرور — لا تُرجَع الكلمات ولا الهاشات أبداً، فقط معرّفات الأقسام
+async function getLockedStageIds() {
+  const { data, error } = await supabase.rpc('library_locked_stage_ids');
+  if (error) { console.error(error); return new Set(); }
+  return new Set(data || []);
+}
+// تعيين/تغيير كلمة المرور: القاعدة تتحقق من القديمة (وتسمح بالتعيين الأول إذا لم توجد كلمة)
+async function changeStagePassword(stageId, oldPass, newPass) {
+  const { data, error } = await supabase.rpc('library_change_password', {
+    p_stage_id: stageId, p_old_password: oldPass || '', p_new_password: newPass
+  });
+  if (error) throw error;
+  return data === true;
+}
+async function unlockStage(stageId, password) {
+  const { data, error } = await supabase.rpc('library_unlock_stage', {
+    p_stage_id: stageId, p_password: password
+  });
+  if (error) throw error;
+  return data === true;
+}
+
+
+
+/* ================= تخزين الملفات على Supabase (Storage + جدول) ================= */
+function safeFileName(name) {
+  const dot = name.lastIndexOf('.');
+  const ext = dot > -1 ? name.slice(dot) : '';
+  return Date.now() + '_' + Math.random().toString(36).slice(2,8) + ext;
 }
 
 async function dbAddFile(stage, category, file) {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction('files','readwrite');
-    tx.objectStore('files').add({
-      stage, category, name:file.name, size:file.size, type:file.type,
-      blob:file, dateAdded:new Date().toISOString()
-    });
-    tx.oncomplete = () => resolve();
-    tx.onerror = (e) => reject(e.target.error);
+  const path = `${stage}/${category}/${safeFileName(file.name)}`;
+  // 1) تسجيل الملف في القاعدة أولاً (يتحقق من كلمة المرور) — وسياسة التخزين لا تسمح بالرفع إلا لمسار مُسجَّل
+  const { data: newId, error: regErr } = await supabase.rpc('library_add_file', {
+    p_stage_id: stage, p_password: currentStagePassword, p_category: category,
+    p_name: file.name, p_size: file.size, p_type: file.type || 'application/octet-stream', p_storage_path: path
   });
+  if (regErr) throw regErr;
+
+  // 2) رفع الملف نفسه
+  const { error: upErr } = await supabase.storage.from(LIBRARY_BUCKET).upload(path, file, {
+    cacheControl: '3600', upsert: false, contentType: file.type || 'application/octet-stream'
+  });
+  if (upErr) {
+    // تراجع: إزالة السجل حتى لا يبقى ملف بلا محتوى
+    try {
+      await supabase.rpc('library_delete_file', { p_file_id: newId, p_stage_id: stage, p_password: currentStagePassword });
+    } catch(e) { console.error(e); }
+    throw upErr;
+  }
 }
 
+let _stageFilesCache = {};
 async function dbGetFilesByStage(stage) {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction('files','readonly');
-    const idx = tx.objectStore('files').index('stage');
-    const req = idx.getAll(stage);
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = (e) => reject(e.target.error);
+  const { data, error } = await supabase.rpc('library_list_files', {
+    p_stage_id: stage, p_password: currentStagePassword
   });
+  if (error) { console.error(error); return []; }
+  const files = (data || []).map(f => ({
+    id: f.id, stage: f.stage_id, category: f.category, name: f.name,
+    size: f.size, type: f.type, storagePath: f.storage_path, dateAdded: f.date_added
+  }));
+  _stageFilesCache = {};
+  files.forEach(f => { _stageFilesCache[f.id] = f; });
+  return files;
+}
+
+function getFilePublicUrl(storagePath) {
+  const { data } = supabase.storage.from(LIBRARY_BUCKET).getPublicUrl(storagePath);
+  return data.publicUrl;
 }
 
 async function dbDeleteFile(id) {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction('files','readwrite');
-    tx.objectStore('files').delete(id);
-    tx.oncomplete = () => resolve();
-    tx.onerror = (e) => reject(e.target.error);
+  // القاعدة تتحقق من كلمة المرور وتحذف السجل وتُرجع مسار الملف؛ ثم يُحذف الملف نفسه من التخزين
+  const { data: storagePath, error } = await supabase.rpc('library_delete_file', {
+    p_file_id: id, p_stage_id: currentStage.id, p_password: currentStagePassword
   });
+  if (error) throw error;
+  if (storagePath) {
+    const { error: rmErr } = await supabase.storage.from(LIBRARY_BUCKET).remove([storagePath]);
+    if (rmErr) console.warn('تعذر حذف الملف من التخزين (سيبقى يتيماً):', rmErr);
+  }
 }
 
 /* ================= واجهة الأقسام ================= */
 let stageFileCounts = {};
 
 async function renderStages() {
-  const stages = getAllStages();
+  const container = document.getElementById('stagesContainer');
+  container.innerHTML = `<div class="empty-state">⏳ جارٍ تحميل الأقسام من قاعدة البيانات...</div>`;
+
+  const [stages, allFiles, lockedIds] = await Promise.all([
+    getAllStages(), getAllFilesGroupedByStage(), getLockedStageIds()
+  ]);
+
   const groups = {};
   stages.forEach(s => { (groups[s.group] = groups[s.group] || []).push(s); });
 
-  const allFiles = await getAllFilesGroupedByStage();
-
-  const container = document.getElementById('stagesContainer');
   container.innerHTML = '';
 
   Object.keys(groups).forEach(groupName => {
     const titleDiv = document.createElement('div');
     titleDiv.className = 'group-title';
-    titleDiv.innerHTML = `<span>${groupName}</span><span class="line"></span>`;
+    titleDiv.innerHTML = `<span>${escapeHtml(groupName)}</span><span class="line"></span>`;
     container.appendChild(titleDiv);
 
     const grid = document.createElement('div');
@@ -432,14 +501,14 @@ async function renderStages() {
 
     groups[groupName].forEach(stage => {
       const counts = allFiles[stage.id] || { pdf:0, audio:0, video:0 };
-      const hasPass = !!getPasswords()[stage.id];
+      const hasPass = lockedIds.has(stage.id);
       const card = document.createElement('div');
       card.className = 'stage-card';
       card.onclick = () => openPasswordModal(stage);
       card.innerHTML = `
         <span class="lock-badge">${hasPass ? '🔒' : '🆕'}</span>
-        <div class="stage-icon">${stage.icon}</div>
-        <div class="stage-name">${stage.name}</div>
+        <div class="stage-icon">${escapeHtml(stage.icon)}</div>
+        <div class="stage-name">${escapeHtml(stage.name)}</div>
         <div class="count-badges">
           <span class="count-pill">📄 ${counts.pdf}</span>
           <span class="count-pill">🎵 ${counts.audio}</span>
@@ -469,28 +538,26 @@ async function renderStages() {
 }
 
 async function getAllFilesGroupedByStage() {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction('files','readonly');
-    const req = tx.objectStore('files').getAll();
-    req.onsuccess = () => {
-      const result = {};
-      req.result.forEach(f => {
-        result[f.stage] = result[f.stage] || { pdf:0, audio:0, video:0 };
-        if (result[f.stage][f.category] !== undefined) result[f.stage][f.category]++;
-      });
-      resolve(result);
-    };
-    req.onerror = (e) => reject(e.target.error);
+  const { data, error } = await supabase.rpc('library_stage_counts');
+  if (error) { console.error(error); return {}; }
+  const result = {};
+  (data || []).forEach(r => {
+    result[r.stage_id] = result[r.stage_id] || { pdf:0, audio:0, video:0 };
+    if (result[r.stage_id][r.category] !== undefined) result[r.stage_id][r.category] = Number(r.n) || 0;
   });
+  return result;
 }
 
 /* ================= مودال كلمة المرور (للدخول للقسم) ================= */
 let pendingStage = null;
+let pendingStageHasPass = false;
+let currentStagePassword = null;   // تبقى في الذاكرة فقط أثناء فتح القسم ولا تُحفظ في أي تخزين محلي
 
-function openPasswordModal(stage) {
+async function openPasswordModal(stage) {
   pendingStage = stage;
-  const hasPass = !!getPasswords()[stage.id];
+  const locked = await getLockedStageIds();
+  const hasPass = locked.has(stage.id);
+  pendingStageHasPass = hasPass;
   document.getElementById('passwordModalTitle').textContent = `🔒 ${stage.name}`;
   document.getElementById('passwordInput1').value = '';
   document.getElementById('passwordInput2').value = '';
@@ -516,8 +583,7 @@ async function submitPassword() {
   if (!pendingStage) return;
   const errEl = document.getElementById('passwordErr');
   errEl.style.display = 'none';
-  const passwords = getPasswords();
-  const hasPass = !!passwords[pendingStage.id];
+  const btn = document.getElementById('passwordSubmitBtn');
   const p1 = document.getElementById('passwordInput1').value;
   const p2 = document.getElementById('passwordInput2').value;
 
@@ -527,27 +593,45 @@ async function submitPassword() {
     return;
   }
 
-  if (!hasPass) {
-    if (p1 !== p2) {
-      errEl.textContent = 'كلمتا المرور غير متطابقتين.';
-      errEl.style.display = 'block';
-      return;
+  btn.disabled = true;
+  try {
+    if (!pendingStageHasPass) {
+      if (p1 !== p2) {
+        errEl.textContent = 'كلمتا المرور غير متطابقتين.';
+        errEl.style.display = 'block';
+        return;
+      }
+      const ok = await changeStagePassword(pendingStage.id, '', p1);
+      if (!ok) {
+        // ربما عُيّنت كلمة مرور من جهاز آخر قبل لحظات
+        errEl.textContent = '⚠️ تعذّر تعيين كلمة المرور — ربما عُيّنت من جهاز آخر. أعد المحاولة بإدخال كلمة المرور الحالية.';
+        errEl.style.display = 'block';
+        return;
+      }
+      currentStagePassword = p1;
+      const stage = pendingStage;
+      closePasswordModal();
+      openStageModal(stage);
+      showToast('✅ تم تعيين كلمة المرور بنجاح، وأصبح القسم متاحاً لكل المشرفين والخدام');
+      renderStages();
+    } else {
+      const ok = await unlockStage(pendingStage.id, p1);
+      if (!ok) {
+        errEl.textContent = '❌ كلمة المرور غير صحيحة.';
+        errEl.style.display = 'block';
+        return;
+      }
+      currentStagePassword = p1;
+      const stage = pendingStage;
+      closePasswordModal();
+      openStageModal(stage);
     }
-    passwords[pendingStage.id] = await sha256(p1);
-    savePasswords(passwords);
-    closePasswordModal();
-    openStageModal(pendingStage);
-    showToast('✅ تم تعيين كلمة المرور بنجاح');
-  } else {
-    const hash = await sha256(p1);
-    if (hash !== passwords[pendingStage.id]) {
-      errEl.textContent = '❌ كلمة المرور غير صحيحة.';
-      errEl.style.display = 'block';
-      return;
-    }
-    const stage = pendingStage;
-    closePasswordModal();
-    openStageModal(stage);
+  } catch (e) {
+    console.error(e);
+    errEl.textContent = '⚠️ تعذّر الاتصال بقاعدة البيانات، حاول مرة أخرى.';
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
   }
 }
 
@@ -561,17 +645,22 @@ function openAddStageModal() {
 function closeAddStageModal() {
   document.getElementById('addStageOverlay').classList.remove('active');
 }
-function submitNewStage() {
+async function submitNewStage() {
   const name = document.getElementById('newStageName').value.trim();
   const errEl = document.getElementById('addStageErr');
+  errEl.style.display = 'none';
   if (!name) { errEl.textContent = 'اكتب اسم القسم أولاً.'; errEl.style.display = 'block'; return; }
-  const list = getCustomStages();
-  const id = 'c_' + Date.now();
-  list.push({ id, name, group:'أقسام إضافية', icon:'📚' });
-  saveCustomStages(list);
-  closeAddStageModal();
-  renderStages();
-  showToast('✅ تم إضافة القسم');
+  const id = (GENDER === 'girls' ? 'g_c_' : 'c_') + Date.now();
+  try {
+    await addCustomStage({ id, name, group:'أقسام إضافية', icon:'📚' });
+    closeAddStageModal();
+    await renderStages();
+    showToast('✅ تم إضافة القسم، وسيظهر لكل المشرفين والخدام');
+  } catch (e) {
+    console.error(e);
+    errEl.textContent = '⚠️ تعذّر الحفظ في قاعدة البيانات، حاول مرة أخرى.';
+    errEl.style.display = 'block';
+  }
 }
 
 /* ================= مودال تغيير كلمة المرور ================= */
@@ -589,17 +678,10 @@ async function submitChangePassword() {
   const errEl = document.getElementById('changePassErr');
   errEl.style.display = 'none';
   if (!currentStage) return;
-  const passwords = getPasswords();
   const oldPass = document.getElementById('oldPassInput').value;
   const n1 = document.getElementById('newPassInput1').value;
   const n2 = document.getElementById('newPassInput2').value;
 
-  const oldHash = await sha256(oldPass);
-  if (oldHash !== passwords[currentStage.id]) {
-    errEl.textContent = '❌ كلمة المرور الحالية غير صحيحة.';
-    errEl.style.display = 'block';
-    return;
-  }
   if (!n1 || n1.length < 4) {
     errEl.textContent = 'كلمة المرور الجديدة يجب أن تكون 4 أحرف على الأقل.';
     errEl.style.display = 'block';
@@ -610,10 +692,21 @@ async function submitChangePassword() {
     errEl.style.display = 'block';
     return;
   }
-  passwords[currentStage.id] = await sha256(n1);
-  savePasswords(passwords);
-  closeChangePasswordModal();
-  showToast('✅ تم تغيير كلمة المرور');
+  try {
+    const ok = await changeStagePassword(currentStage.id, oldPass, n1);
+    if (!ok) {
+      errEl.textContent = '❌ كلمة المرور الحالية غير صحيحة.';
+      errEl.style.display = 'block';
+      return;
+    }
+    currentStagePassword = n1;
+    closeChangePasswordModal();
+    showToast('✅ تم تغيير كلمة المرور لكل المستخدمين');
+  } catch (e) {
+    console.error(e);
+    errEl.textContent = '⚠️ تعذّر الاتصال بقاعدة البيانات، حاول مرة أخرى.';
+    errEl.style.display = 'block';
+  }
 }
 
 /* ================= صفحة القسم (بعد الدخول بنجاح) ================= */
@@ -632,6 +725,8 @@ async function openStageModal(stage) {
 function closeStageModal() {
   document.getElementById('stageOverlay').classList.remove('active');
   currentStage = null;
+  currentStagePassword = null;
+  _stageFilesCache = {};
 }
 function switchTab(cat) {
   currentTab = cat;
@@ -686,19 +781,13 @@ function escapeHtml(str) {
 }
 
 async function getFileById(id) {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction('files','readonly');
-    const req = tx.objectStore('files').get(id);
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = (e) => reject(e.target.error);
-  });
+  return _stageFilesCache[id] || null;
 }
 
 async function viewFile(id, category) {
   const f = await getFileById(id);
   if (!f) return;
-  const url = URL.createObjectURL(f.blob);
+  const url = getFilePublicUrl(f.storagePath);
   if (category === 'pdf') {
     window.open(url, '_blank');
   } else {
@@ -716,21 +805,25 @@ async function viewFile(id, category) {
 async function downloadFile(id) {
   const f = await getFileById(id);
   if (!f) return;
-  const url = URL.createObjectURL(f.blob);
+  const url = getFilePublicUrl(f.storagePath);
   const a = document.createElement('a');
-  a.href = url; a.download = f.name;
+  a.href = url; a.download = f.name; a.target = '_blank'; a.rel = 'noopener';
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(url);
+  a.remove();
 }
 
 function deleteFileConfirm(id) {
   // الحذف متاح فقط داخل صفحة القسم، أي بعد إدخال كلمة المرور بنجاح
   if (!currentStage) return;
-  if (!confirm('هل أنت متأكد من حذف هذا الملف نهائياً؟')) return;
+  if (!confirm('هل أنت متأكد من حذف هذا الملف نهائياً؟ سيُحذف من قاعدة البيانات لكل المستخدمين.')) return;
   dbDeleteFile(id).then(async () => {
     await refreshAllPanels();
     await renderStages();
     showToast('🗑️ تم حذف الملف');
+  }).catch(e => {
+    console.error(e);
+    showToast('⚠️ تعذّر حذف الملف، حاول مرة أخرى');
   });
 }
 
@@ -781,7 +874,46 @@ document.querySelectorAll('.overlay').forEach(ov => {
 });
 
 /* ================= بدء التشغيل ================= */
-document.addEventListener('DOMContentLoaded', renderStages);
+function renderGenderChooser() {
+  document.getElementById('syncStatus').style.display = 'none';
+  document.getElementById('stagesContainer').innerHTML = `
+    <div class="gender-chooser">
+      <a class="gender-card boys" href="./library.html?g=boys">
+        <div class="g-icon">👦</div><div class="g-name">مكتبة البنين</div><div class="g-sub">كل الصفوف الدراسية للبنين</div>
+      </a>
+      <a class="gender-card girls" href="./library.html?g=girls">
+        <div class="g-icon">👧</div><div class="g-name">مكتبة البنات</div><div class="g-sub">كل الصفوف الدراسية للبنات</div>
+      </a>
+    </div>`;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  if (!GENDER) { renderGenderChooser(); return; }
+  document.body.classList.add(GENDER);
+  document.title = GENDER_LABEL + ' — كنيسة القديسين العظيمين الأنبا كاراس والأنبا أنطونيوس';
+  document.getElementById('libTitle').textContent = (GENDER === 'girls' ? '👧 ' : '👦 ') + GENDER_LABEL;
+  document.getElementById('switchGenderLink').style.display = 'inline-flex';
+  checkSupabaseConnection();
+  renderStages();
+});
+
+// تعريض الدوال التي تستخدمها أزرار HTML (onclick) على النطاق العام
+window.submitPassword = submitPassword;
+window.closePasswordModal = closePasswordModal;
+window.submitNewStage = submitNewStage;
+window.closeAddStageModal = closeAddStageModal;
+window.submitChangePassword = submitChangePassword;
+window.closeChangePasswordModal = closeChangePasswordModal;
+window.openChangePasswordModal = openChangePasswordModal;
+window.closeStageModal = closeStageModal;
+window.switchTab = switchTab;
+window.viewFile = viewFile;
+window.downloadFile = downloadFile;
+window.deleteFileConfirm = deleteFileConfirm;
+window.openAddStageModal = openAddStageModal;
+window.openPasswordModal = openPasswordModal;
+window.handleFileSelect = handleFileSelect;
+})();
 </script>
 </body>
 </html>

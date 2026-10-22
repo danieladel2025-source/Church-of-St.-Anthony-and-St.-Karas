@@ -1,45 +1,118 @@
 {
-  "name": "نظام تسجيل غياب ومتابعة مخدومين وخدام كنيسة الأنبا انطونيوس والأنبا كاراس",
+  "id": "./index.html",
+  "name": "نظام تسجيل غياب ومتابعة مخدومين وخدام كنيسة القديسين العظيمين الأنبا كاراس والأنبا أنطونيوس",
   "short_name": "كشف غياب الكنيسة",
-  "description": "نظام تسجيل غياب ومتابعة مخدومين وخدام - كنيسة الأنبا انطونيوس والأنبا كاراس بالعجيزي",
+  "description": "نظام تسجيل غياب ومتابعة مخدومين وخدام كنيسة القديسين العظيمين الأنبا كاراس والأنبا أنطونيوس",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "orientation": "portrait-primary",
+  "orientation": "any",
   "background_color": "#0d1117",
   "theme_color": "#0d1117",
-  "dir": "rtl",
   "lang": "ar",
+  "dir": "rtl",
   "icons": [
     {
-      "src": "./icons/icon-152.png",
+      "src": "icons/icon-72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-152.png",
       "sizes": "152x152",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "./icons/icon-192.png",
+      "src": "icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "./icons/icon-192.png",
+      "src": "icons/icon-maskable-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "./icons/icon-512.png",
+      "src": "icons/icon-384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "./icons/icon-512.png",
+      "src": "icons/icon-maskable-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    }
+  ],
+  "categories": [
+    "education",
+    "productivity"
+  ],
+  "shortcuts": [
+    {
+      "name": "تسجيل الحضور",
+      "short_name": "الحضور",
+      "url": "./index.html",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "لوحة المشرفين",
+      "short_name": "المشرفين",
+      "url": "./admin.html",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "المكتبة الروحية",
+      "short_name": "المكتبة",
+      "url": "./library.html",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     }
   ]
 }
