@@ -1,5 +1,5 @@
-// ===== Service Worker: نظام تسجيل غياب ومتابعة المخدومين — كنيسة القديسين العظيمين الأنبا كاراس والأنبا أنطونيوس =====
-const CACHE_VERSION = 'church-attendance-v11'; // رفع الإصدار يجبر الأجهزة على جلب الملفات المُحدّثة
+// ===== Service Worker: نظام تسجيل غياب ومتابعة المخدومين — كاتدرائية رئيس الملائكة الجليل ميخائيل - طنطا =====
+const CACHE_VERSION = 'church-attendance-v20'; // رفع الإصدار يجبر الأجهزة على جلب الملفات المُحدّثة
 const CACHE_NAME = CACHE_VERSION;
 
 // الملفات الأساسية التي يتم تخزينها مسبقًا (App Shell)
@@ -22,7 +22,10 @@ const PRECACHE_URLS = [
   './icons/icon-152.png',
   './icons/icon-192.png',
   './icons/icon-384.png',
-  './icons/icon-512.png'
+  './icons/icon-512.png',
+  './icons/icon-maskable-192.png',
+  './icons/icon-maskable-512.png',
+  './icons/church-logo.png'
 ];
 
 // ----- التثبيت: تخزين الملفات الأساسية (فشل ملف واحد لا يُفشل التثبيت كله) -----
