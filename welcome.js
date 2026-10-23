@@ -271,7 +271,7 @@
     el.setAttribute('aria-modal', 'true');
     el.innerHTML =
       '<div class="wg-card">' +
-        '<div class="wg-icon"><img src="' + WELCOME_IMG + '" alt="كاتدرائية رئيس الملائكة الجليل ميخائيل بطنطا"></div>' +
+        '<div class="wg-icon"><img src="' + WELCOME_IMG + '" alt="كنيسة القديسين العظيمين الأنبا كاراس والأنبا أنطونيوس بطنطا"></div>' +
         '<h1>مرحباً بك 👋</h1>' +
         '<div class="wg-sub">من فضلك أدخل بياناتك ليظهر لك الفصل المناسب</div>' +
 
